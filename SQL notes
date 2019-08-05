@@ -1,0 +1,27 @@
+SQL notes
+
+order you write functions(?)/commands different than order it is executed/logical order
+
+we think:
+1. From -What kind of table do I need?
+2. Where - which rows is this info from
+3. Group by - what collection of info do I need?
+4. Aggregation - ''
+5. Having - like where, but after a group
+6. Window - 
+7. Select - which info should I output 
+8. Distinct
+9. Union - 
+10. Order by - what order to display info in
+
+This might be a good order to layout logic for sql whiteboarding questions
+
+SELECT * FROM dsajfk  Gives all columns
+
+mySQL postgreSQL have different data types when creating table.
+
+connect to mycooldb database: psql mycooldb
+within server list databases: \l
+within server to exit server: \q
+
+Convert files to csv from tsv: https://stackoverflow.com/questions/2535255/fastest-way-convert-tab-delimited-file-to-csv-in-linux

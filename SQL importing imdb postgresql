@@ -1,0 +1,198 @@
+This worked for IMDB data import:
+
+title.basics.tsv.gz - Contains the following information for titles:
+
+    tconst (string) - alphanumeric unique identifier of the title
+    titleType (string) – the type/format of the title (e.g. movie, short, tvseries, tvepisode, video, etc)
+    primaryTitle (string) – the more popular title / the title used by the filmmakers on promotional materials at the point of release
+    originalTitle (string) - original title, in the original language
+    isAdult (boolean) - 0: non-adult title; 1: adult title
+    startYear (YYYY) – represents the release year of a title. In the case of TV Series, it is the series start year
+    endYear (YYYY) – TV Series end year. ‘\N’ for all other title types
+    runtimeMinutes – primary runtime of the title, in minutes
+    genres (string array) – includes up to three genres associated with the title
+
+
+CREATE TABLE title_basics (
+  tconst character varying(80),
+  titleType character varying (80),
+  primaryTitle text,
+  originalTitle text,
+  isAdult bool,
+  startYear int,
+  endYear int,
+  runtimeMinutes int,
+  genres text
+);
+
+
+Had to convert the TSV to CSV with comment low in this guide:
+Convert files to csv from tsv: https://stackoverflow.com/questions/2535255/fastest-way-convert-tab-delimited-file-to-csv-in-linux:
+
+--------
+If you're worried about embedded commas then you'll need to use a slightly more intelligent method. Here's a Python script that takes TSV lines from stdin and writes CSV lines to stdout:
+
+import sys
+import csv
+
+tabin = csv.reader(sys.stdin, dialect=csv.excel_tab)
+commaout = csv.writer(sys.stdout, dialect=csv.excel)
+for row in tabin:
+  commaout.writerow(row)
+
+Run it from a shell as follows:
+
+python script.py < input.tsv > output.csv
+---------
+
+
+\copy title_basics FROM '/Users/gregorystegeman/Downloads/title.basics.csv' (FORMAT csv, HEADER, DELIMITER ',', NULL '\N');
+
+I had to fix a few errors due to quotations causing skipped tab to comma conversions. Maybe 5-6?
+---------
+
+title.episode.tsv.gz – Contains the tv episode information. Fields include:
+
+    tconst (string) - alphanumeric identifier of episode
+    parentTconst (string) - alphanumeric identifier of the parent TV Series
+    seasonNumber (integer) – season number the episode belongs to
+    episodeNumber (integer) – episode number of the tconst in the TV series
+
+CREATE TABLE title_episode (
+  tconst character varying(80),
+  parentTconst character varying(80),
+  seasonNumber int,
+  episodeNumber int
+);
+
+\copy title_episode FROM '/Users/gregorystegeman/Downloads/title.episode.csv' (FORMAT csv, HEADER, DELIMITER ',', NULL '\N');
+
+-----------
+
+title.ratings.tsv.gz – Contains the IMDb rating and votes information for titles
+
+    tconst (string) - alphanumeric unique identifier of the title
+    averageRating – weighted average of all the individual user ratings
+    numVotes - number of votes the title has received
+
+CREATE TABLE title_ratings (
+  tconst character varying(80),
+  averageRating numeric,
+  numVotes int
+);
+
+\copy title_ratings FROM '/Users/gregorystegeman/Downloads/title.ratings.csv' (FORMAT csv, HEADER, DELIMITER ',', NULL '\N');
+
+
+
+
+
+
+
+
+For Yammer data challenge:
+
+CREATE TABLE users
+(
+  user_id int(),
+  created_at timestamp(),
+  state character varying(16),
+  activated_at timestamp(),
+  company_id int(),
+  language character varying(16),
+)
+
+
+CREATE TABLE users (
+  user_id numeric,
+  created_at timestamp,
+  state character varying(16),
+  activated_at timestamp,
+  company_id numeric,
+  language character varying(16)
+)
+
+
+COPY users(user_id, created_at, company_id, language, activated_at, state)
+FROM '/Users/gregorystegeman/Dropbox/Code/Python/Insight/Data challenge 2/yammer_users.csv' DELIMITER ',' CSV HEADER;
+
+title.akas.tsv.gz - Contains the following information for titles:
+
+    titleId (string) - a tconst, an alphanumeric unique identifier of the title
+    ordering (integer) – a number to uniquely identify rows for a given titleId
+    title (string) – the localized title
+    region (string) - the region for this version of the title
+    language (string) - the language of the title
+    types (array) - Enumerated set of attributes for this alternative title. One or more of the following: "alternative", "dvd", "festival", "tv", "video", "working", "original", "imdbDisplay". New values may be added in the future without warning
+    attributes (array) - Additional terms to describe this alternative title, not enumerated
+    isOriginalTitle (boolean) – 0: not original title; 1: original title
+
+
+
+COPY title_basics(tconst, titleType, primaryTitle, originalTitle, isAdult, startYear, endYear, runtimeMinutes, genres)
+FROM '/Users/gregorystegeman/Downloads/title.basics.csv' DELIMITER ',' CSV HEADER;
+
+\copy title_basics FROM '/Users/gregorystegeman/Downloads/title.basics.csv' (FORMAT csv, HEADER, DELIMITER ',', NULL '\N');
+
+
+CREATE TABLE title_basics (
+  tconst character varying(80),
+  titleType character varying (80),
+  primaryTitle text,
+  originalTitle text,
+  isAdult int,
+  startYear text,
+  endYear text,
+  runtimeMinutes text,
+  genres text
+);
+
+COPY title_basics FROM '/Users/gregorystegeman/Downloads/title.basics.tsv' DELIMITER E'\t' CSV HEADER;
+
+
+
+
+
+  state character varying(16),
+  activated_at timestamp,
+  company_id numeric,
+  language character varying(16)
+)
+
+
+title.crew.tsv.gz – Contains the director and writer information for all the titles in IMDb. Fields include:
+
+    tconst (string) - alphanumeric unique identifier of the title
+    directors (array of nconsts) - director(s) of the given title
+    writers (array of nconsts) – writer(s) of the given title
+
+title.episode.tsv.gz – Contains the tv episode information. Fields include:
+
+    tconst (string) - alphanumeric identifier of episode
+    parentTconst (string) - alphanumeric identifier of the parent TV Series
+    seasonNumber (integer) – season number the episode belongs to
+    episodeNumber (integer) – episode number of the tconst in the TV series
+
+title.principals.tsv.gz – Contains the principal cast/crew for titles
+
+    tconst (string) - alphanumeric unique identifier of the title
+    ordering (integer) – a number to uniquely identify rows for a given titleId
+    nconst (string) - alphanumeric unique identifier of the name/person
+    category (string) - the category of job that person was in
+    job (string) - the specific job title if applicable, else '\N'
+    characters (string) - the name of the character played if applicable, else '\N'
+
+title.ratings.tsv.gz – Contains the IMDb rating and votes information for titles
+
+    tconst (string) - alphanumeric unique identifier of the title
+    averageRating – weighted average of all the individual user ratings
+    numVotes - number of votes the title has received
+
+name.basics.tsv.gz – Contains the following information for names:
+
+    nconst (string) - alphanumeric unique identifier of the name/person
+    primaryName (string)– name by which the person is most often credited
+    birthYear – in YYYY format
+    deathYear – in YYYY format if applicable, else '\N'
+    primaryProfession (array of strings)– the top-3 professions of the person
+    knownForTitles (array of tconsts) – titles the person is known for
