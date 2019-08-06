@@ -1,6 +1,4 @@
-#### project incomplete as of April 17, just testing this out.
-
-# Explore imdb data with SQL
+# Explore imdb data with SQL (Windows guide)
 
 The goal of this project is to provide a tutorial and some resources for novice coders or data scientists to use SQL to explore imdb data. IMDB.com has changed its sorting and search functionality over the last fews years making it a little more difficult to access certain information, for instance listing by top user-rated episodes across all seasons of a TV series. Helpfully, imdb provides subsets of their data for personal use, however these are not in a format readily accessible for most users. As I started to learn SQL it figured imdb data would provide a good set of data to practice on. I decided to share what I had in case any one else wanted to query imdb data or practice or learn SQL with their own project.
 
@@ -305,15 +303,14 @@ pip install ipython-sql pandas sqlalchemy psycopg2
 - sqlalchemy - ORM object relational mapper for databases
 - psycopg2 required for sqlalchemy?
 
-
+Check out the jupyter notebook in this repo for examples of what you can do with magic functions and SQL.
 
 
 ```
 %sql postgresql://postgres:@localhost/imdb
 ```
 
-
-
+Maybe more later... that's all for now.
 
 
 
