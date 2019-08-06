@@ -183,7 +183,7 @@ for row in tabin:
 
 Cut and paste the python code into an editor and save as something like tsvconvertscript.py with the .py file extension. 
 
-To start the conversion from tsv to csv, from a command prompt ~~or powershell~~ navigate to the directory where the tsv files located and run something like this:
+To start the conversion from tsv to csv, from a command prompt ~~or powershell~~ (Powershell doesn't like the ">") navigate to the directory where the tsv files located and run something like this:
 
 ```
 python tsvconvertscript.py < title.basics.tsv > title.basics.csv
@@ -292,17 +292,25 @@ After you import title_ratings, try to query how many total ratings/votes IMDB h
 
 ## Query the database in Jupyter Notebook
 
-When you have postgresql running your imdb database should be accessible to outside programs accessing postgresql as a server. This means we can query the data from Jupyter notebook!
+When you have postgresql running your imdb database should be accessible to outside programs accessing postgresql as a server. This means we can query the data from Jupyter notebook! I'm largely assuming you, as an aspiring data scientist, have already installed and worked with Jupyter notebooks a bit.
+
+I used this pdf guide a lot to get my notebook up and running with sql: [PostgreSQL and Jupyter setup](https://www.systems.ethz.ch/sites/default/files/ex1a_postgresql_jupyter_setup.pdf)
+
+First, there are some python packages/libraries we need to work with SQL in jupyter notebooks. You can install them from command line with the following code depending on how your anaconda or python install worked. I'm assuming pip will work, you maybe able to use conda instead depending on if you are using different environments, you'll have to figure this out for yourself, I just want to get sql working in ipython/jupoyter notebooks for now:
+```
+pip install ipython-sql pandas sqlalchemy psycopg2
+```
+- ipython-sql is for magic functions which can work with SQL.
+- pandas allows you to work with large datasets in python.
+- sqlalchemy - ORM object relational mapper for databases
+- psycopg2 required for sqlalchemy?
 
 
 
 
-
-
-
-
-
-
+```
+%sql postgresql://postgres:@localhost/imdb
+```
 
 
 
