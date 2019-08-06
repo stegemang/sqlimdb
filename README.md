@@ -1,4 +1,4 @@
-# project incomplete as of April 17, just testing this out.
+#### project incomplete as of April 17, just testing this out.
 
 # Explore imdb data with SQL
 
@@ -47,6 +47,8 @@ title.episode.tsv.gz
 title.ratings.tsv.gz
 ```
 
+.gz file format is some time of file compression. I used 7zip to unzip to access the tsv files. Rename or keep track of file names when you do decompress, they all seemed to default to data.tsv for me.
+
 #### Jupyter Notebook
 
 You hopefully already have this, if not there are plenty of guides online and setting it up varies a little from Windows to Mac to Linux.
@@ -86,6 +88,9 @@ Start up the command line imdb PSQL (windows), on Mac use the PostgreSQL.app to 
 
 
 [Guide I'm following for windows](https://www.microfocus.com/documentation/idol/IDOL_12_0/MediaServer/Guides/html/English/Content/Getting_Started/Configure/_TRN_Set_up_PostgreSQL.htm)
+
+
+## Setting up PostgreSQL for IMDB database
 
 Use the "PSQL" shortcut from postgresql listing in your start menu/in windows, or access postgresql with the default User (-U), 'postgres', from your command prompt with:
 
@@ -147,52 +152,148 @@ You can check that this new title_basics table exists in your imdb database with
 
 You'll have to check the datatypes and initialize each of the imdb datasets you want to download and include in your sql database. See below for how I did `title.episode` and `title.ratings`
 
-## Importing the data
+## Copying the data to SQL
 
 Time to copy the data from the downloaded files to tables in the imdb database in your SQL server. This part gets a bit messy, which is a big part of data science.
 
-Postgresql seems to handle CSV's better than tab separated files, so we will convert to a csv for several reasons
+You will need to do this separately for each file from imdb you want. Let's start with `title.basics.tsv.gz`. Unzip the gz file with whatever you use for compressed files. The file may default to data.tsv, rename it back to `title.basics.tsv` to keep track of which table is which.
 
-1. There is a header in the imdb tables, which can only be handled as a csv
+Postgresql seems to handle CSV's better than tab separated files, so we will convert from tab separated .tsv to comma separated .csv for several reasons
+
+1. There is a header in the imdb tables, which can only be handled as a csv in postgresql
 2. There are non standard characters in the data set from foreign films etc. so we need to handle encoding
 3. We can specify how to handle Nulls etc.
 
-You will need to do this separately for each file from imdb you want.
 
 [Here is a link how to convert the files to csv from tsv](https://stackoverflow.com/a/2535337)
 
-- note for later: Maybe the csv library imported by the script can deal with problems in dataset? Open double quotes?
 
-Here is the suggested code:
+We need to modify the script in the link for windows or it inserts extra line breaks between every row. We can add `lineterminator='\n'` to the arguments in `csv.writer()` to fix the problem. Here is the modified suggested python script for format conversion from the link above:
 
 ```
 import sys
 import csv
 
 tabin = csv.reader(sys.stdin, dialect=csv.excel_tab)
-commaout = csv.writer(sys.stdout, dialect=csv.excel)
+commaout = csv.writer(sys.stdout, lineterminator='\n', dialect=csv.excel)
 for row in tabin:
   commaout.writerow(row)
 ```
+- note for later: Maybe the csv library imported by the script can deal with problems in dataset? Open double quotes?
 
-Cut and paste the python code into an editor and save as a .py file extension. From a command prompt or powershell run the line:
+Cut and paste the python code into an editor and save as something like tsvconvertscript.py with the .py file extension. 
 
-```
-python script.py title.basics.tsv title.basics.csv
-```
-
+To start the conversion from tsv to csv, from a command prompt ~~or powershell~~ navigate to the directory where the tsv files located and run something like this:
 
 ```
-\copy title_basics FROM 'G:\Users\Greg\Downloads\title.basics.tsv' (FORMAT tsv, HEADER, DELIMITER ',', NULL '\N');
+python tsvconvertscript.py < title.basics.tsv > title.basics.csv
 ```
 
-\COPY title_basics FROM 'G:\Users\Greg\Downloads\title.basics\title.basics.tsv' DELIMITER '   ';
+The conversion may take some time, and there is no progress indicator in the script. Once complete you'll have a very large .csv file, (too large to open with excel! one reason you're probably here). Now we can try importing the file into our postgres database.
+
+#### Copy from .csv to PostgreSQL
+
+Back in your postgreQSL prompt/console/window try this to import data from the csv we just made, adjusting for your local file location:
+
+```
+\COPY title_basics FROM 'C:\IMDBdata\raw\title.basics.csv' (FORMAT csv, HEADER, DELIMITER ',', NULL '\N');
+```
 
 If windows doesn't like the encoding, try this in the psql prompt:
-
 ```
 SET CLIENT_ENCODING TO 'utf8';
 ```
+
+Postgresql will try copying the data into your table until it hits an error. This is where I don't have a good solution, but we can edit the files to fix the errors manually. This is a bit difficult because the files are so large. Sometimes as a data scientist you just need to manually fix the data. Ideally we should script out this fix or find a programmatic way to handle this or we will have to do this over and over again everytime. If you find a way, please let me know. There may be a way with the python csv conversion script.
+ 
+ For the title.basics.csv I get an error: `invalid input syntax for type boolean` at line `1102398`. It looks like the year is getting bumped into the "is adult" column. Let's take a look at what is happening. In windows you can inspect `title.basics.csv` using "open with" notepad or another text editor. Try using `ctrl + g` to jump to the line in the error. If ctrl+g is not working you may need check the menu bar for "format" and turn off "word wrap". 
+
+When we check out line 1,102,398 in title.basics, we see:
+```
+tt10233364,tvEpisode,Rolling in the Deep Dish	Rolling in the Deep Dish,0,2019,\N,\N,Reality-TV
+```
+It looks like there is a missing comma and a tab leftover between the primaryTitle and originalTitle columns for this row. Let's manually select the tab whitespace and overwrite it with a `,`, save the csv file, and then run the `\COPY title_basics...` command in postgresql again. 
+
+For me, it runs until like `2604327` with a similar error where a column must have been skipped because a non boolean is ending up in the boolean datatype only "isadult" column. Repeat this process until you successfully copy the whole csv into posgres. It seems like postgres will not duplicate previous rows from each attempt as you work through these errors.
+
+1. At postgresql prompt run `\COPY table_name FROM 'filelocation.csv' (FORMAT csv, HEADER, DELIMITER ',', NULL '\N');`
+2. Open filename.csv in text editor that can handle large file.
+3. Go to line from error message with `ctrl +g`
+4. Figure out what caused the error (usually a missing comma, or quotations that trap a comma or are never closed)
+5. Carefully fix the error, usually delete or overwrite the offending characters.
+6. Save file as same name and retry from step #1 until the copy command completes for your file.
+
+If you are getting errors every few lines you need to find the root cause. For the errors I mentioned here, they are rare and hundreds of thousands of rows apart so I just did it by hand which seemed faster to me that trying to find the underlying issue.
+
+I got eight errors between the primaryTitle and originalTitle columns, at lines:
+```
+1102398 -tab to comma
+2604327 -tab to comma
+3329456 -space to quotation marks and comma
+5079326 -missing comma, maybe due to backslash earlier
+5500686 -missing close quotation marks and comma
+6014341 -tab to comma
+6051196 -missing comma, probably due to lots of apostrophe's
+6055561 -missing comma
+```
+
+When the copy completes you should get a message like `COPY 6059226` with the number indicating the number of rows imported. This number will depend on how many titles are in the imdb data when you download the files. I initially got a message: 'COPY 159546' which was suspiciously low, so I ran the copy command again and it worked.
+
+You can also now query this table with SQL. From the postgresql prompt, try the command below and you should get the same number as the message at the end of the copy command:
+
+```
+SELECT COUNT(*) FROM title_basics;
+```
+
+
+
+#### Import the other tables
+
+Now you can use the same steps to import the other tables you want to use.
+
+1. Initialize the next table schema with the column names and datatypes in the imdb database in postgresql
+2. Extract the .tsv from the downloaded .gz file and rename
+3. Run the .tsv conversion python script to convert from .tsv to .csv
+4. Copy the data from the .csv to the empty table in postgresql
+
+For example: `title_episode`
+
+1. Try setting up the table in sql like this:
+```
+CREATE TABLE title_episode (
+  tconst character varying(80),
+  parentTconst character varying(80),
+  seasonNumber int,
+  episodeNumber int
+);
+```
+
+2. Extract and rename the file to title.episode.tsv
+3. Convert to .csv in command line from directory with data files and script:
+```
+python tsvconvertscript.py < title.episode.tsv > title.episode.csv
+```
+4. Copy into the imdb database in postgresql from wherever you located the csv file in the postgresql prompt:
+```
+\COPY title_episode FROM 'C:\IMDBdata\raw\title.episode.csv' (FORMAT csv, HEADER, DELIMITER ',', NULL '\N');
+```
+
+Here is a working table schema for title.ratings:
+
+```
+CREATE TABLE title_ratings (
+  tconst character varying(80),
+  averageRating numeric,
+  numVotes int
+);
+```
+
+After you import title_ratings, try to query how many total ratings/votes IMDB has received from users!
+
+## Query the database in Jupyter Notebook
+
+When you have postgresql running your imdb database should be accessible to outside programs accessing postgresql as a server. This means we can query the data from Jupyter notebook!
+
 
 
 
